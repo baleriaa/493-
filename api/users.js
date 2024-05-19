@@ -6,6 +6,20 @@ const { Review } = require('../models/review')
 
 const router = Router()
 
+async function insertNewUser(userObject) {
+  const {name, email, password} = userObject;
+  const passwordHash = await bcrypt.hash(user.password, 8);
+  const userDocument = {name, email, password: passwordHash};
+
+  return User.create(userDocument);
+}
+
+async function getUserById(userId, includePassword=false) {
+  const projection = includePassword ? {} : { password: 0 };
+
+  return User.findByPk(userId, {projection})
+}
+
 /*
  * Route to list all of a user's businesses.
  */
@@ -37,6 +51,19 @@ router.get('/:userId/photos', async function (req, res) {
   res.status(200).json({
     photos: userPhotos
   })
+})
+
+/*
+ * Route to fetch info about a specific user.
+ */
+router.get('/:userId', async function (req, res) {
+  const userId = req.params.userId
+  const user = await getUserById(userId)
+  if (user) {
+    res.status(200).send(user)
+  } else {
+    next()
+  }
 })
 
 module.exports = router
