@@ -18,6 +18,7 @@ exports.UserClientFields = [
   'id',
   'name',
   'email',
+  'password',
   'admin'
 ]
 
