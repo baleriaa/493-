@@ -3,10 +3,10 @@ const { Router } = require('express')
 const { Business } = require('../models/business')
 const { Photo } = require('../models/photo')
 const { Review } = require('../models/review')
-const { User } = require('../models/user')
+const { User } = require('../models/users')
+const { generateAuthToken, requireAuthentication } = require('../lib/auth');
 
 const bcrypt = require('bcrypt')
-const { authenticate } = require('../middleware/auth')
 
 const router = Router()
 
@@ -33,7 +33,7 @@ async function validateUser(id, password) {
 /*
  * Route to list all of a user's businesses.
  */
-router.get('/:userId/businesses', async function (req, res) {
+router.get('/:userId/businesses', requireAuthentication, async function (req, res) {
   const userId = req.params.userId
   const userBusinesses = await Business.findAll({ where: { ownerId: userId }})
   res.status(200).json({
@@ -44,7 +44,7 @@ router.get('/:userId/businesses', async function (req, res) {
 /*
  * Route to list all of a user's reviews.
  */
-router.get('/:userId/reviews', async function (req, res) {
+router.get('/:userId/reviews', requireAuthentication, async function (req, res) {
   const userId = req.params.userId
   const userReviews = await Review.findAll({ where: { userId: userId }})
   res.status(200).json({
@@ -55,7 +55,7 @@ router.get('/:userId/reviews', async function (req, res) {
 /*
  * Route to list all of a user's photos.
  */
-router.get('/:userId/photos', async function (req, res) {
+router.get('/:userId/photos', requireAuthentication, async function (req, res) {
   const userId = req.params.userId
   const userPhotos = await Photo.findAll({ where: { userId: userId }})
   res.status(200).json({
@@ -66,8 +66,13 @@ router.get('/:userId/photos', async function (req, res) {
 /*
  * Route to fetch info about a specific user.
  */
-router.get('/:userId', async function (req, res) {
+router.get('/:userId', requireAuthentication, async function (req, res) {
   const userId = req.params.userId
+  if (req.user !== req.params.userID) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   const user = await getUserById(userId)
   if (user) {
     res.status(200).send(user)
@@ -80,11 +85,13 @@ router.get('/:userId', async function (req, res) {
  * Route to log in a user.
  */
 router.post('/login', async function (req, res) {
+  console.log("== POST /login body:", req.body);
   if (req.body && req.body.id && req.body.password) {
     try {
       const authenticated = await validateUser(req.body.id, req.body.password);
       if (authenticated) {
-        res.status(200).send({});
+        const token = generateAuthToken(req.body.id);
+        res.status(200).send({ token });
       } else {
         res.status(401).send({
           error: "Invalid authentication credentials"
@@ -99,6 +106,19 @@ router.post('/login', async function (req, res) {
     res.status(400).json({
       error: "Request body needs user ID and password."
     });
+  }
+})
+
+/*
+ * Route to register a new user
+ */
+router.post('/', async function (req, res) {
+  try {
+    const user = await insertNewUser(req.body);
+    res.status(201).json({id: user.id});
+  } catch (error) {
+    console.error("Error inserting new user:", error);
+    res.status(500).json({ error: "Error inserting new user" });
   }
 })
 
