@@ -35,6 +35,11 @@ async function validateUser(id, password) {
  */
 router.get('/:userId/businesses', requireAuthentication, async function (req, res) {
   const userId = req.params.userId
+  if (req.user !== req.params.userID) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   const userBusinesses = await Business.findAll({ where: { ownerId: userId }})
   res.status(200).json({
     businesses: userBusinesses
@@ -46,6 +51,11 @@ router.get('/:userId/businesses', requireAuthentication, async function (req, re
  */
 router.get('/:userId/reviews', requireAuthentication, async function (req, res) {
   const userId = req.params.userId
+  if (req.user !== req.params.userID) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   const userReviews = await Review.findAll({ where: { userId: userId }})
   res.status(200).json({
     reviews: userReviews
@@ -57,6 +67,11 @@ router.get('/:userId/reviews', requireAuthentication, async function (req, res) 
  */
 router.get('/:userId/photos', requireAuthentication, async function (req, res) {
   const userId = req.params.userId
+  if (req.user !== req.params.userID) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   const userPhotos = await Photo.findAll({ where: { userId: userId }})
   res.status(200).json({
     photos: userPhotos
@@ -84,7 +99,7 @@ router.get('/:userId', requireAuthentication, async function (req, res) {
 /*
  * Route to log in a user.
  */
-router.post('/login', async function (req, res) {
+router.post('/login', requireAuthentication, async function (req, res) {
   console.log("== POST /login body:", req.body);
   if (req.body && req.body.id && req.body.password) {
     try {

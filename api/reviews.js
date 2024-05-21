@@ -1,14 +1,20 @@
 const { Router } = require('express')
 const { ValidationError } = require('sequelize')
-
 const { Review, ReviewClientFields } = require('../models/review')
+const { requireAuthentication } = require('../lib/auth');
 
 const router = Router()
 
 /*
  * Route to create a new review.
  */
-router.post('/', async function (req, res, next) {
+router.post('/', requireAuthentication, async function (req, res, next) {
+  const reviewId = req.params.reviewId
+  if (req.user !== reviewId) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   try {
     const review = await Review.create(req.body, ReviewClientFields)
     res.status(201).send({ id: review.id })
@@ -37,9 +43,13 @@ router.get('/:reviewId', async function (req, res, next) {
 /*
  * Route to update a review.
  */
-router.patch('/:reviewId', async function (req, res, next) {
+router.patch('/:reviewId', requireAuthentication, async function (req, res, next) {
   const reviewId = req.params.reviewId
-
+  if (req.user !== reviewId) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   /*
    * Update review without allowing client to update businessId or userId.
    */
@@ -59,8 +69,13 @@ router.patch('/:reviewId', async function (req, res, next) {
 /*
  * Route to delete a review.
  */
-router.delete('/:reviewId', async function (req, res, next) {
+router.delete('/:reviewId', requireAuthentication, async function (req, res, next) {
   const reviewId = req.params.reviewId
+  if (req.user !== reviewId) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   const result = await Review.destroy({ where: { id: reviewId }})
   if (result > 0) {
     res.status(204).send()

@@ -1,14 +1,20 @@
 const { Router } = require('express')
 const { ValidationError } = require('sequelize')
-
 const { Photo, PhotoClientFields } = require('../models/photo')
+const { requireAuthentication } = require('../lib/auth');
 
 const router = Router()
 
 /*
  * Route to create a new photo.
  */
-router.post('/', async function (req, res, next) {
+router.post('/', requireAuthentication, async function (req, res, next) {
+  const photoId = req.params.photoId
+  if (req.user !== photoId) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   try {
     const photo = await Photo.create(req.body, PhotoClientFields)
     res.status(201).send({ id: photo.id })
@@ -37,9 +43,13 @@ router.get('/:photoId', async function (req, res, next) {
 /*
  * Route to update a photo.
  */
-router.patch('/:photoId', async function (req, res, next) {
+router.patch('/:photoId', requireAuthentication, async function (req, res, next) {
   const photoId = req.params.photoId
-
+  if (req.user !== photoId) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   /*
    * Update photo without allowing client to update businessId or userId.
    */
@@ -59,8 +69,13 @@ router.patch('/:photoId', async function (req, res, next) {
 /*
  * Route to delete a photo.
  */
-router.delete('/:photoId', async function (req, res, next) {
+router.delete('/:photoId', requireAuthentication, async function (req, res, next) {
   const photoId = req.params.photoId
+  if (req.user !== photoId) {
+    res.status(403).json({
+      error: "Unauthorized to access the specified resource"
+    });
+  }
   const result = await Photo.destroy({ where: { id: photoId }})
   if (result > 0) {
     res.status(204).send()
